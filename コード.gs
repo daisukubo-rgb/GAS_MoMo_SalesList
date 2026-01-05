@@ -1,9 +1,7 @@
 /**
  * 営業リスト作成ツール (Places API + Gemini API)
- * 仕様：
- * - 会社概要ページも取得してAI分析精度向上
- * - I列：実行ユーザー名記録
- * - J列：架電チェックボックス自動挿入
+ * 仕様：UI分割入力対応 & MoMo様AI研修プロンプト & gemini-3.0-flash指定 & URL返却
+ * 更新：トップページに加え、会社概要ページも取得してAI分析精度を向上
  * @author GASサポーター
  */
 
@@ -28,23 +26,18 @@ function executeSearch(keyword, userInstruction, limitParam) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SHEET_NAME);
     
-    // 実行ユーザーのメールアドレスを取得
-    // ※デプロイ設定で「ユーザーとして実行」になっている必要あり
-    const userEmail = Session.getActiveUser().getEmail();
-
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_NAME);
       sheet.appendRow([
-        '会社名', 'Gemini分析結果', 'WebサイトURL', '電話番号', '住所', 'メールアドレス', '問い合わせフォームURL', '取得日時', '実行ユーザー', '架電チェック'
+        '会社名', 'Gemini分析結果', 'WebサイトURL', '電話番号', '住所', 'メールアドレス', '問い合わせフォームURL', '取得日時'
       ]);
-      sheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#f3f3f3');
+      sheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#f3f3f3');
       sheet.setFrozenRows(1);
     }
 
     let existingUrls = new Set();
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) { 
-      // URL列(C列=3列目)を確認して重複チェック
       const urlColumnValues = sheet.getRange(2, 3, lastRow - 1, 1).getValues(); 
       urlColumnValues.flat().forEach(url => {
         if (url) existingUrls.add(url);
@@ -75,7 +68,7 @@ function executeSearch(keyword, userInstruction, limitParam) {
           continue;
         }
 
-        // サイト情報取得（トップページ＋会社概要ページ）
+        // ここでサイト情報を取得（トップページ＋会社概要）
         const siteData = getSiteContent(place.websiteUri);
         
         let geminiAnalysis = "分析不可(サイト情報なし)";
@@ -83,7 +76,6 @@ function executeSearch(keyword, userInstruction, limitParam) {
           geminiAnalysis = analyzeWithGemini(siteData.text, userInstruction);
         }
 
-        // データを配列化（I列まで）
         const rowData = [
           place.displayName.text,   
           geminiAnalysis,           
@@ -92,17 +84,10 @@ function executeSearch(keyword, userInstruction, limitParam) {
           place.formattedAddress,   
           siteData.emails.join(', '), 
           siteData.contactUrl,
-          new Date(),
-          userEmail    // I列：実行ユーザー
+          new Date()                
         ];
 
-        // 行を追加
         sheet.appendRow(rowData);
-        
-        // 追加された行のJ列(10列目)にチェックボックスを挿入
-        const newRowIndex = sheet.getLastRow();
-        sheet.getRange(newRowIndex, 10).insertCheckboxes();
-
         existingUrls.add(place.websiteUri);
         successCount++;
         Utilities.sleep(1000); 
@@ -159,6 +144,7 @@ function searchPlaces(textQuery, pageToken = null) {
   return { places: json.places || [], nextPageToken: json.nextPageToken || null };
 }
 
+// ★修正：トップページ＋会社概要ページを取得するロジックに変更
 function getSiteContent(url) {
   try {
     // 1. トップページの取得
@@ -182,10 +168,13 @@ function getSiteContent(url) {
     // もし会社概要URLが見つかり、かつトップページと違うURLなら取得しに行く
     if (companyUrl && companyUrl !== url) {
       try {
+        // 会社概要ページは読み込みに失敗してもエラーにせず、無視して進む
         const compResponse = UrlFetchApp.fetch(companyUrl, { muteHttpExceptions: true, validateHttpsCertificates: false });
         if (compResponse.getResponseCode() === 200) {
           const compHtml = compResponse.getContentText();
           companyText = extractTextFromHtml(compHtml);
+          
+          // 会社概要ページからもメールアドレスを探して追加しておく
           const compEmails = compHtml.match(emailRegex) || [];
           foundEmails.push(...compEmails);
         }
@@ -196,6 +185,8 @@ function getSiteContent(url) {
 
     // 3. テキストの結合（Geminiに渡す情報）
     let combinedText = `【トップページ情報】\n${homeText}\n\n【会社概要・企業情報ページ情報】\n${companyText}`;
+    
+    // Geminiへの送信量が増えるため、20000文字まで許可（多すぎる場合はカット）
     if (combinedText.length > 20000) combinedText = combinedText.substring(0, 20000); 
     
     return { text: combinedText, emails: [...new Set(foundEmails)], contactUrl: contactUrl };
@@ -205,7 +196,7 @@ function getSiteContent(url) {
   }
 }
 
-// HTMLからテキストのみを抽出
+// ★追加：HTMLからテキストのみを抽出するヘルパー関数
 function extractTextFromHtml(html) {
   if (!html) return "";
   return html
@@ -214,21 +205,6 @@ function extractTextFromHtml(html) {
     .replace(/<[^>]+>/g, "\n")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-// 会社概要ページのURLを探す
-function findCompanyProfileUrl(html, baseUrl) {
-  const linkRegex = /<a[^>]+href=["'](.*?)["'][^>]*>(.*?)<\/a>/gi;
-  let match;
-  const targetKeywords = /会社概要|企業情報|会社案内|企業概要|About|Company|Profile|Overview/i;
-  while ((match = linkRegex.exec(html)) !== null) {
-    const href = match[1]; 
-    const text = match[2]; 
-    if (targetKeywords.test(text) || targetKeywords.test(href)) {
-      return resolveUrl(baseUrl, href);
-    }
-  }
-  return null; 
 }
 
 function findContactPageUrl(html, baseUrl) {
@@ -241,6 +217,24 @@ function findContactPageUrl(html, baseUrl) {
     if (targetKeywords.test(href) || targetKeywords.test(text)) return resolveUrl(baseUrl, href);
   }
   return ''; 
+}
+
+// ★追加：会社概要ページのURLを探す関数
+function findCompanyProfileUrl(html, baseUrl) {
+  const linkRegex = /<a[^>]+href=["'](.*?)["'][^>]*>(.*?)<\/a>/gi;
+  let match;
+  // リンクテキストまたはURLに含まれていそうなキーワード
+  const targetKeywords = /会社概要|企業情報|会社案内|企業概要|About|Company|Profile|Overview/i;
+  
+  while ((match = linkRegex.exec(html)) !== null) {
+    const href = match[1]; 
+    const text = match[2]; 
+    
+    if (targetKeywords.test(text) || targetKeywords.test(href)) {
+      return resolveUrl(baseUrl, href);
+    }
+  }
+  return null; 
 }
 
 function resolveUrl(baseUrl, href) {
