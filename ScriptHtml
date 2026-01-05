@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+      :root {
+        --primary-color: #007AFF; /* Apple Blue */
+        --text-main: #1d1d1f;
+        --text-sub: #86868b;
+        --glass-bg: rgba(255, 255, 255, 0.75);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --input-bg: rgba(255, 255, 255, 0.6);
+        --shadow-soft: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+        background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+      }
+
+      .glass-container {
+        width: 100%;
+        max-width: 540px;
+        padding: 40px;
+        margin: 20px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 24px;
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow-soft);
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 35px;
+      }
+
+      h1 {
+        font-size: 26px;
+        font-weight: 700;
+        margin: 0;
+        background: linear-gradient(90deg, #007AFF, #00C6FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+      }
+      
+      p.subtitle {
+        color: var(--text-sub);
+        font-size: 13px;
+        margin-top: 8px;
+        font-weight: 500;
+      }
+
+      .form-group {
+        margin-bottom: 24px;
+        position: relative;
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-sub);
+        margin-bottom: 8px;
+        margin-left: 4px;
+        letter-spacing: 0.02em;
+      }
+      
+      .badge-required {
+        color: #FF3B30;
+        font-size: 11px;
+        margin-left: 4px;
+      }
+      
+      .badge-any {
+        color: var(--text-sub);
+        font-size: 11px;
+        margin-left: 4px;
+        opacity: 0.7;
+      }
+
+      input[type="text"], 
+      input[type="number"],
+      select,
+      textarea {
+        width: 100%;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--input-bg);
+        font-size: 16px;
+        color: var(--text-main);
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        backdrop-filter: blur(5px);
+      }
+
+      input:focus, select:focus, textarea:focus {
+        outline: none;
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
+        transform: translateY(-1px);
+      }
+      
+      ::placeholder { color: #a1a1a6; }
+
+      button#runBtn {
+        width: 100%;
+        background: linear-gradient(135deg, #007AFF 0%, #0062cc 100%);
+        color: white;
+        padding: 18px;
+        border: none;
+        border-radius: 18px;
+        font-size: 17px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        margin-top: 10px;
+      }
+
+      button#runBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4);
+      }
+
+      button:disabled {
+        background: #d1d1d6;
+        box-shadow: none;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .status-box {
+        margin-top: 30px;
+        padding: 20px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(0, 122, 255, 0.1);
+        display: none;
+        font-size: 14px;
+        line-height: 1.6;
+        animation: fadeIn 0.5s ease;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .spinner {
+        animation: rotate 1.5s linear infinite;
+        font-size: 20px;
+      }
+
+      @keyframes rotate {
+        100% { transform: rotate(360deg); }
+      }
+
+      /* 結果リンクボタンのスタイル */
+      .sheet-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 15px;
+        padding: 12px 20px;
+        background-color: white;
+        color: #007AFF;
+        text-decoration: none;
+        font-weight: bold;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+      }
+      .sheet-link-btn:hover {
+        background-color: #f0f8ff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+
+    <div class="glass-container">
+      <header>
+        <h1>AI Sales List Creator</h1>
+        <p class="subtitle">MoMo AI研修 営業リスト作成ツール</p>
+      </header>
+      
+      <div class="form-group">
+        <label for="pref">都道府県 <span class="badge-required">必須</span></label>
+        <div style="position: relative;">
+          <select id="pref">
+            <option value="" disabled selected>選択してください</option>
+            </select>
+          <span class="material-icons" style="position:absolute; right:15px; top:15px; color:#aaa; pointer-events:none;">expand_more</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="area">地域 <span class="badge-any">任意</span></label>
+        <input type="text" id="area" placeholder="例：博多区、天神（空白OK）">
+      </div>
+
+      <div class="form-group">
+        <label for="industry">業種・業界 <span class="badge-required">必須</span></label>
+        <input type="text" id="industry" placeholder="例：福祉、製造業">
+      </div>
+
+      <div class="form-group">
+        <label for="limit">取得件数 <span class="badge-required">目標</span></label>
+        <input type="number" id="limit" value="10" min="1" max="50">
+      </div>
+
+      <div class="form-group">
+        <label for="instruction">AIへの指示 <span class="badge-any">任意</span></label>
+        <textarea id="instruction" rows="3" placeholder="Geminiへの追加指示があれば入力..."></textarea>
+      </div>
+
+      <button id="runBtn" onclick="runSearch()">
+        <span class="material-icons">auto_awesome</span> Generate List
+      </button>
+
+      <div id="status" class="status-box"></div>
+    </div>
+
+    <script>
+      const prefs = [
+        "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
+        "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
+        "新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県",
+        "静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県",
+        "奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県",
+        "徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県",
+        "熊本県","大分県","宮崎県","鹿児島県","沖縄県"
+      ];
+      
+      const prefSelect = document.getElementById('pref');
+      prefs.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p;
+        option.text = p;
+        prefSelect.appendChild(option);
+      });
+
+      function runSearch() {
+        const pref = document.getElementById('pref').value;
+        const area = document.getElementById('area').value.trim();
+        const industry = document.getElementById('industry').value.trim();
+        const limit = document.getElementById('limit').value;
+        const instruction = document.getElementById('instruction').value;
+        const statusDiv = document.getElementById('status');
+        const btn = document.getElementById('runBtn');
+
+        if (!pref) { alert('都道府県を選択してください。'); return; }
+        if (!industry) { alert('業種・業界を入力してください。'); return; }
+
+        const searchKeyword = `${pref} ${area} ${industry}`.trim().replace(/\s+/g, ' ');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons spinner">sync</span> Creating...';
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px; color:#007AFF; font-weight:bold;">
+             <span class="material-icons">radar</span> 探索中...
+          </div>
+          <div style="margin-top:5px; color:#555;">
+             キーワード: <strong>${searchKeyword}</strong><br>
+             <span style="font-size:12px; color:#888;">※完了までそのままお待ちください</span>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-icons">auto_awesome</span> Generate List';
+            
+            if (result.success) {
+              // リンクボタンのHTML作成
+              let linkHtml = '';
+              if (result.url) {
+                linkHtml = `<br><a href="${result.url}" target="_blank" class="sheet-link-btn">
+                  <span class="material-icons">table_view</span> スプレッドシートを開く
+                </a>`;
+              }
+
+              statusDiv.innerHTML = `
+                <div style="color:#34c759; font-weight:bold; font-size:16px; margin-bottom:5px;">
+                  <span class="material-icons" style="vertical-align:text-bottom;">check_circle</span> 完了しました
+                </div>
+                <div style="color:#333;">${result.message.replace(/\n/g, '<br>')}</div>
+                ${linkHtml}
+              `;
+            }
+          })
+          .withFailureHandler(function(error) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-icons">refresh</span> Retry';
+            statusDiv.innerHTML = `
+              <div style="color:#ff3b30; font-weight:bold;">
+                <span class="material-icons" style="vertical-align:text-bottom;">error</span> エラー
+              </div>
+              <div style="font-size:13px; margin-top:5px;">${error.message}</div>
+            `;
+          })
+          .executeSearch(searchKeyword, instruction, limit);
+      }
+    </script>
+  </body>
+</html>
